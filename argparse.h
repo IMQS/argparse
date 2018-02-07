@@ -72,6 +72,7 @@ public:
 	std::string              Usage; // Main usage text
 	std::vector<Option>      Options;
 	std::vector<std::string> Params;
+	bool                     WasHelpShown = false; // True if Parse() returns false, and showed help text
 
 	// Set main usage text
 	Args(std::string usage) : Usage(usage) {}
@@ -84,7 +85,9 @@ public:
 	void ShowHelp();
 
 	// Parse
-	// startAt: Start parsing at this argument. One normally skips the first argument, because it's typically the name of the program
+	// startAt: Start parsing at this argument. You normally skip the first argument, because it's typically the name of the program
+	// Returns true if parse succeeded, or false if parse failed, or if help was shown. See WasHelpShown to know if the parse failed
+	// because the user requested help.
 	bool Parse(int argc, const char** argv, int startAt = 1);
 
 	// Results
@@ -135,6 +138,7 @@ inline void Args::ShowHelp() {
 		}
 		printf("\n");
 	}
+	WasHelpShown = true;
 }
 
 inline bool Args::Parse(int argc, const char** argv, int startAt) {
