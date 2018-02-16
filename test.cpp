@@ -1,7 +1,7 @@
 #include "argparse.h"
 #include <assert.h>
 
-int main(int argc, char** argv) {
+void Simple() {
 	argparse::Args args("Usage: something [options...] param1 param2");
 	args.AddSwitch("f", "force", "Force a thing");
 	args.AddSwitch("p", "preserve", "Preserve goodness");
@@ -41,6 +41,49 @@ int main(int argc, char** argv) {
 		printf("\n-- Should show help --\n");
 		assert(!args.Parse(2, b));
 	}
+}
 
+int Foo(argparse::Args& args) {
+	printf("Foo %s\n", args.Has("foo1") ? "foo1" : "nothing");
+	return 0;
+}
+
+int Bar(argparse::Args& args) {
+	return 1;
+}
+
+void WithCommands() {
+	argparse::Args args("thing [options...] <command>");
+
+	// top-level option
+	args.AddSwitch("v", "verbose", "More verbose");
+
+	auto cmdFoo = args.AddCommand("foo", "Do the foo thing", Foo);
+	cmdFoo->AddSwitch("f", "foo1", "foo1 switch");
+
+	auto cmdBar = args.AddCommand("bar", "Do the bar thing", Bar);
+
+	{
+		const char* a[2] = {"thing.exe", "nop"};
+		assert(!args.Parse(2, a));
+	}
+	{
+		const char* a[4] = {"thing.exe", "-v", "foo", "--foo1"};
+		assert(args.Parse(4, a));
+		assert(args.Has("v"));
+		assert(args.WhichCommand() == cmdFoo);
+		assert(args.ExecCommand() == 0);
+	}
+	{
+		const char* a[3] = {"thing.exe", "bar"};
+		assert(args.Parse(2, a));
+		assert(args.WhichCommand() == cmdBar);
+		assert(args.ExecCommand() == 1);
+	}
+}
+
+int main(int argc, char** argv) {
+	Simple();
+	WithCommands();
 	return 0;
 }
