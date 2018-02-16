@@ -239,7 +239,7 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 			} else {
 				opt->Toggled = true;
 			}
-		} else if (Commands.size() != 0) {
+		} else if (Commands.size() != 0 && !cmd) {
 			// command
 			for (Args* c : Commands) {
 				if (c->CmdName == arg) {
