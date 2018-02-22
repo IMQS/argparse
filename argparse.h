@@ -105,26 +105,23 @@ public:
 	bool                     WasHelpShown = false; // True if Parse() returns false, and showed help text
 
 	// Command parameters
-	std::string       CmdName;              // Name of a command
-	std::string       CmdParams;            // Help text describing parameters of command
-	argparse::CmdFunc CmdFunc;              // Function to execute for comamnd
-	bool              CmdWasChosen = false; // True if this command was chosen
+	std::string       CmdName;                  // Name of a command
+	std::string       CmdParams;                // Help text describing parameters of command
+	argparse::CmdFunc CmdFunc;                  // Function to execute for command
+	bool              CmdEnforceParams = true;  // If CmdParams text is "<param1> <param2>", then make sure two parameters are passed to command
+	bool              CmdWasChosen     = false; // True if this command was chosen
 
-	// Set main usage text for a command
-	Args(std::string usage) : Usage(usage) {}
-	// Set title and description for a command
-	Args(std::string cmdName, std::string usage, argparse::CmdFunc func);
+	Args(std::string usage) : Usage(usage) {}                             // Set main usage text for a command
+	Args(std::string cmdName, std::string usage, argparse::CmdFunc func); // Set title and description for a command
 	~Args();
 
 	// Setup
-	void  AddSwitch(std::string _short, std::string _long, std::string summary);                               // Add a binary on/off option that has no value (eg -nocache)
+	void  AddSwitch(std::string _short, std::string _long, std::string summary);                               // Add a binary on/off option that has no value (eg --nocache)
 	void  AddValue(std::string _short, std::string _long, std::string summary, std::string defaultValue = ""); // Add an option that has an associated value (eg -f outfile)
 	Args* AddCommand(std::string name, std::string description, argparse::CmdFunc func = nullptr);             // Add a command
 
 	// Help
-	void        ShowHelp();
-	std::string UsageShort() const;   // Returns everything before the first \n from Usage
-	std::string UsageDetails() const; // Returns everything after the first \n from Usage
+	void ShowHelp();
 
 	// Parse
 	// startAt: Start parsing at this argument. You normally skip the first argument, because it's typically the name of the program
@@ -145,6 +142,9 @@ private:
 	bool        ValidateSanity(int depth) const;
 	void        Reset();
 	void        ShowHelpInternal(int depth, std::string forCmd);
+	std::string UsageShort() const;     // Returns everything before the first \n from Usage
+	std::string UsageDetails() const;   // Returns everything after the first \n from Usage
+	size_t      CmdParamsCount() const; // If CmdParams is "<param1> <param2>" then return 2 (ie the number of objects inside <angled brackets>)
 	static void WriteFormattedText(int indent, std::string text, int lineLength);
 };
 
@@ -203,6 +203,15 @@ inline std::string Args::UsageDetails() const {
 		return Usage.substr(pos + 1);
 	else
 		return "";
+}
+
+inline size_t Args::CmdParamsCount() const {
+	size_t count = 0;
+	for (size_t i = 0; i < CmdParams.size(); i++) {
+		if (CmdParams[i] == '<')
+			count++;
+	}
+	return count;
 }
 
 inline bool Args::Parse(int argc, const char** argv, int startAt) {
@@ -265,6 +274,15 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 				Params.push_back(arg);
 		}
 	}
+
+	if (cmd && cmd->CmdEnforceParams) {
+		auto nparams = cmd->Params.size();
+		if (nparams != cmd->CmdParamsCount()) {
+			printf("%s expects %d parameters: %s, but there are %d parameters\n", cmd->CmdName.c_str(), (int) cmd->CmdParamsCount(), cmd->CmdParams.c_str(), (int) nparams);
+			return false;
+		}
+	}
+
 	return true;
 }
 
