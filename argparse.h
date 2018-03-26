@@ -327,11 +327,15 @@ inline std::string Args::Get(const std::string& _short_or_long) const {
 }
 
 inline int Args::GetInt(const std::string& _short_or_long) const {
-	return stoi(Get(_short_or_long));
+	return atoi(Get(_short_or_long).c_str());
 }
 
 inline int64_t Args::GetInt64(const std::string& _short_or_long) const {
-	return (int64_t) stoll(Get(_short_or_long));
+#ifdef _MSC_VER
+	return (int64_t) _atoi64(Get(_short_or_long).c_str());
+#else
+	return (int64_t) atoll(Get(_short_or_long).c_str());
+#endif
 }
 
 inline Option* Args::FindOption(const char* arg) {
