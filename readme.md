@@ -8,12 +8,12 @@ Features:
 * Can nest commands one level deep
 * Automatically generated help text
 * Tested on clang, gcc, MSVC
-* No exceptions
+* No exceptions thrown
 
 Options have a long name, and an optional single-character short name:
 
-	--force
-	-f
+	--force   Long name  (mandatory)
+	-f        Short name (optional)
 
 Options can be boolean, like above, or they can have a value associated with them:
 
@@ -22,9 +22,9 @@ Options can be boolean, like above, or they can have a value associated with the
 
 Anything that is not part of an option is collected in 'Params'
 
-Commands can be added with `AddCommand`. If one or more commands have been defined, then the user _must_ enter a valid command as the first parameter. Subsequent parameters are fed to the chosen command. Commands can have options and switches, just like the master `Args` object.
+Commands can be added with `AddCommand`. If one or more commands have been defined, then the user _must_ enter a valid command as the first parameter. Subsequent parameters are fed to the chosen command. Commands can have options and switches, just like the master `Args` object. Commands are the mechanism that is used to form a 2 level hierarchy of ArgParse objects.
 
-To print out full help for all options, use `args.ShowHelp()`. This is invoked automatically when the user types `help`.
+To print out full help for all options, use `args.ShowHelp()`. This is invoked automatically when the user types `help` or `--help`, or a bunch of other help-like keywords.
 
 Simple example:
 ```cpp
