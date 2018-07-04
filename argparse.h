@@ -146,6 +146,7 @@ private:
 	std::string UsageDetails() const;   // Returns everything after the first \n from Usage
 	size_t      CmdParamsCount() const; // If CmdParams is "<param1> <param2>" then return 2 (ie the number of objects inside <angled brackets>)
 	static void WriteFormattedText(int indent, std::string text, int lineLength);
+	static bool IsNumeric(const char* s);
 };
 
 inline Args::Args(std::string cmdName, std::string usage, argparse::CmdFunc func) : Usage(usage), CmdFunc(func) {
@@ -225,7 +226,20 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 		if (arg.length() != 0 && arg[0] == '-') {
 			// option
 			auto opt = cmd ? cmd->FindOption(arg.c_str()) : FindOption(arg.c_str());
-			if (!opt) {
+			if (opt) {
+				if (opt->ExpectsValue && atEnd) {
+					printf("Option %s expects a value, eg --%s <something>\n", arg.c_str(), opt->Long.c_str());
+					return false;
+				}
+				if (opt->ExpectsValue) {
+					i++;
+					opt->Value   = argv[i];
+					opt->Toggled = true;
+				} else {
+					opt->Toggled = true;
+				}
+				continue;
+			} else {
 				auto a = arg;
 				if (a == "-h" || a == "-help" || a == "--help" || a == "-?" || a == "/?" || a == "/h" || a == "/help") {
 					if (atEnd)
@@ -234,21 +248,15 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 						ShowHelpInternal(0, argv[i + 1]);
 					return false;
 				}
-				printf("Unknown option '%s'\n", arg.c_str());
-				return false;
+				if (IsNumeric(arg.c_str())) {
+					// If this is a negative number, then fall through to positional parameter
+				} else {
+					printf("Unknown option '%s'\n", arg.c_str());
+					return false;
+				}
 			}
-			if (opt->ExpectsValue && atEnd) {
-				printf("Option %s expects a value, eg --%s <something>\n", arg.c_str(), opt->Long.c_str());
-				return false;
-			}
-			if (opt->ExpectsValue) {
-				i++;
-				opt->Value   = argv[i];
-				opt->Toggled = true;
-			} else {
-				opt->Toggled = true;
-			}
-		} else if (Commands.size() != 0 && !cmd) {
+		}
+		if (Commands.size() != 0 && !cmd) {
 			// command
 			for (Args* c : Commands) {
 				if (c->CmdName == arg) {
@@ -266,13 +274,14 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 					printf("Unknown command '%s'\n", arg.c_str());
 				return false;
 			}
-		} else {
-			// positional parameter
-			if (cmd)
-				cmd->Params.push_back(arg);
-			else
-				Params.push_back(arg);
+			continue;
 		}
+
+		// positional parameter
+		if (cmd)
+			cmd->Params.push_back(arg);
+		else
+			Params.push_back(arg);
 	}
 
 	if (cmd && cmd->CmdEnforceParams) {
@@ -408,6 +417,14 @@ inline void Args::WriteFormattedText(int indent, std::string text, int lineLengt
 	}
 	if (line != "")
 		printf("%*s%s\n", indent, " ", line.c_str());
+}
+
+inline bool Args::IsNumeric(const char* s) {
+	for (; *s; s++) {
+		if (!((*s >= '0' && *s <= '9') || *s == '-' || *s == '+' || *s == '.' || *s == 'e'))
+			return false;
+	}
+	return true;
 }
 
 inline void Args::ShowHelpInternal(int depth, std::string forCmd) {
