@@ -130,12 +130,13 @@ public:
 	bool Parse(int argc, const char** argv, int startAt = 1);
 
 	// Results
-	int         ExecCommand();                                     // Execute the command that was chosen. Returns value from exec function.
-	Args*       WhichCommand();                                    // Returns the command that was chosen, or null.
-	bool        Has(const std::string& _short_or_long) const;      // Returns true if the option was specified
-	std::string Get(const std::string& _short_or_long) const;      // Get an option's value. Returns default value if not specified.
-	int         GetInt(const std::string& _short_or_long) const;   // Get an option and convert to int. Returns default value if not specified.
-	int64_t     GetInt64(const std::string& _short_or_long) const; // Get an option and convert to int64. Returns default value if not specified.
+	int         ExecCommand();                                      // Execute the command that was chosen. Returns value from exec function.
+	Args*       WhichCommand();                                     // Returns the command that was chosen, or null.
+	bool        Has(const std::string& _short_or_long) const;       // Returns true if the option was specified
+	std::string Get(const std::string& _short_or_long) const;       // Get an option's value. Returns default value if not specified.
+	int         GetInt(const std::string& _short_or_long) const;    // Get an option and convert to int. Returns default value if not specified.
+	int64_t     GetInt64(const std::string& _short_or_long) const;  // Get an option and convert to int64. Returns default value if not specified.
+	double      GetDouble(const std::string& _short_or_long) const; // Get an option and convert to double. Returns default value if not specified.
 
 private:
 	Option*     FindOption(const char* arg);
@@ -345,6 +346,10 @@ inline int64_t Args::GetInt64(const std::string& _short_or_long) const {
 #else
 	return (int64_t) atoll(Get(_short_or_long).c_str());
 #endif
+}
+
+inline double Args::GetDouble(const std::string& _short_or_long) const {
+	return atof(Get(_short_or_long).c_str());
 }
 
 inline Option* Args::FindOption(const char* arg) {
