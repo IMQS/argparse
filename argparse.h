@@ -229,7 +229,7 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 			auto opt = cmd ? cmd->FindOption(arg.c_str()) : FindOption(arg.c_str());
 			if (opt) {
 				if (opt->ExpectsValue && atEnd) {
-					printf("Option %s expects a value, eg --%s <something>\n", arg.c_str(), opt->Long.c_str());
+					printf("\033[1;31mOption %s expects a value, eg \033[0;32m--%s <something>\033[0m\n", arg.c_str(), opt->Long.c_str());
 					return false;
 				}
 				if (opt->ExpectsValue) {
@@ -252,7 +252,7 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 				if (IsNumeric(arg.c_str())) {
 					// If this is a negative number, then fall through to positional parameter
 				} else {
-					printf("Unknown option '%s'\n", arg.c_str());
+					printf("\033[1;31mUnknown option '%s'\033[0m\n", arg.c_str());
 					return false;
 				}
 			}
@@ -272,7 +272,7 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 				else if (arg == "help")
 					ShowHelpInternal(0, "");
 				else
-					printf("Unknown command '%s'\n", arg.c_str());
+					printf("\033[1;31mUnknown command '%s'\033[0m\n", arg.c_str());
 				return false;
 			}
 			continue;
@@ -288,7 +288,7 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 	if (cmd && cmd->CmdEnforceParams) {
 		auto nparams = cmd->Params.size();
 		if (nparams != cmd->CmdParamsCount()) {
-			printf("%s expects %d parameters: %s, but there are %d parameters\n", cmd->CmdName.c_str(), (int) cmd->CmdParamsCount(), cmd->CmdParams.c_str(), (int) nparams);
+			printf("\033[1;31m%s expects %d parameters: %s, but there are %d parameters\033[0m\n", cmd->CmdName.c_str(), (int) cmd->CmdParamsCount(), cmd->CmdParams.c_str(), (int) nparams);
 			return false;
 		}
 	}
