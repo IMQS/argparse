@@ -224,7 +224,7 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 	for (int i = startAt; i < argc; i++) {
 		bool        atEnd = i == argc - 1;
 		std::string arg   = argv[i];
-		if (arg.length() != 0 && arg[0] == '-') {
+		if (arg.length() != 0 && (arg[0] == '-' || arg == "/?")) {
 			// option
 			auto opt = cmd ? cmd->FindOption(arg.c_str()) : FindOption(arg.c_str());
 			if (opt) {
@@ -243,7 +243,9 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 			} else {
 				auto a = arg;
 				if (a == "-h" || a == "-help" || a == "--help" || a == "-?" || a == "/?" || a == "/h" || a == "/help") {
-					if (atEnd)
+					if (atEnd && cmd)
+						ShowHelpInternal(0, cmd->CmdName);
+					else if (atEnd)
 						ShowHelp();
 					else
 						ShowHelpInternal(0, argv[i + 1]);

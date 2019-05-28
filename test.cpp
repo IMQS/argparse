@@ -36,9 +36,9 @@ void Simple() {
 		// If -h or -? or /? or --help is the only option, then show help
 		const char* a[2] = {"thing.exe", "-h"};
 		const char* b[2] = {"thing.exe", "--help"};
-		printf("\n-- Should show help --\n");
+		printf("\n>>>> Should show help <<<<\n\n");
 		assert(!args.Parse(2, a));
-		printf("\n-- Should show help --\n");
+		printf("\n>>>> Should show help <<<<\n\n");
 		assert(!args.Parse(2, b));
 	}
 }
@@ -79,6 +79,11 @@ void WithCommands() {
 		assert(args.Parse(2, a));
 		assert(args.WhichCommand() == cmdBar);
 		assert(args.ExecCommand() == 1);
+	}
+	{
+		printf("\n>>>> Should show help for the 'foo' command <<<<\n\n");
+		const char* a[3] = {"thing.exe", "foo", "-help"};
+		assert(!args.Parse(3, a));
 	}
 }
 
