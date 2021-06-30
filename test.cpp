@@ -63,20 +63,50 @@ void WithCommands() {
 
 	auto cmdBar = args.AddCommand("bar", "Do the bar thing", Bar);
 
+	auto cmdEnd         = args.AddCommand("end", "Special command - ignore after", nullptr);
+	cmdEnd->IgnoreAfter = true;
+
 	{
 		const char* a[2] = {"thing.exe", "nop"};
 		assert(!args.Parse(2, a));
 	}
 	{
+		// Invalid, because no command specified
+		const char* a[1] = {"thing.exe"};
+		assert(!args.Parse(1, a));
+	}
+	{
 		const char* a[4] = {"thing.exe", "-v", "foo", "--foo1"};
 		assert(args.Parse(4, a));
+		assert(args.ParseEnd == 4);
 		assert(args.Has("v"));
 		assert(args.WhichCommand() == cmdFoo);
 		assert(args.ExecCommand() == 0);
 	}
 	{
+		const char* a[7] = {"thing.exe", "foo", "--", "anything", "goes", "after", "--"};
+		assert(args.Parse(7, a));
+		assert(args.WhichCommand() == cmdFoo);
+		assert(args.ParseEnd == 3);
+	}
+	{
+		// Because IgnoreAfter=true on 'end', we can have arbitrary options after it, and they will be ignored
+		const char* a[5] = {"thing.exe", "-v", "end", "--endOption", "-v"};
+		assert(args.Parse(5, a));
+		assert(args.ParseEnd == 3);
+		assert(args.Has("v"));
+		assert(args.WhichCommand() == cmdEnd);
+		argparse::Args subEnd("special sub");
+		subEnd.AddSwitch("v", "voo", "VOO");
+		subEnd.AddSwitch("e", "endOption", "ENDOPTION");
+		assert(subEnd.Parse(5, a, 3));
+		assert(subEnd.Has("v"));
+		assert(subEnd.Has("e"));
+	}
+	{
 		const char* a[3] = {"thing.exe", "bar"};
 		assert(args.Parse(2, a));
+		assert(args.ParseEnd == 2);
 		assert(args.WhichCommand() == cmdBar);
 		assert(args.ExecCommand() == 1);
 	}

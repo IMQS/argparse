@@ -103,6 +103,8 @@ public:
 	std::vector<std::string> Params;
 	std::vector<Args*>       Commands;
 	bool                     WasHelpShown = false; // True if Parse() returns false, and showed help text
+	bool                     IgnoreAfter  = false; // If this is a command, then ignore all parameters after this is seen
+	size_t                   ParseEnd     = 0;     // After Parse() is called, ParseEnd is one beyond the last argv element consumed
 
 	// Command parameters
 	std::string       CmdName;                  // Name of a command
@@ -128,6 +130,11 @@ public:
 	// Returns true if parse succeeded, or false if parse failed, or if help was shown. See WasHelpShown to know if the parse failed
 	// because the user requested help.
 	bool Parse(int argc, const char** argv, int startAt = 1);
+
+	// Variant of Parse that accepts a vector of strings.
+	// This is useful for chaining up sub-commands deep inside other parts of your program, or when it's inconvenient
+	// to try to collect all Args up into a single top-level tree.
+	bool Parse(const std::vector<std::string>& args, int startAt = 0);
 
 	// Results
 	int         ExecCommand();                                      // Execute the command that was chosen. Returns value from exec function.
@@ -224,7 +231,11 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 	for (int i = startAt; i < argc; i++) {
 		bool        atEnd = i == argc - 1;
 		std::string arg   = argv[i];
-		if (arg.length() != 0 && (arg[0] == '-' || arg == "/?")) {
+		if (arg == "--") {
+			// This is the special "abort parsing" argument
+			ParseEnd = i + 1;
+			break;
+		} else if (arg.length() != 0 && (arg[0] == '-' || arg == "/?")) {
 			// option
 			auto opt = cmd ? cmd->FindOption(arg.c_str()) : FindOption(arg.c_str());
 			if (opt) {
@@ -239,6 +250,7 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 				} else {
 					opt->Toggled = true;
 				}
+				ParseEnd = i + 1;
 				continue;
 			} else {
 				auto a = arg;
@@ -265,6 +277,7 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 				if (c->CmdName == arg) {
 					cmd               = c;
 					cmd->CmdWasChosen = true;
+					ParseEnd          = i + 1;
 					break;
 				}
 			}
@@ -277,6 +290,8 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 					printf("\033[1;31mUnknown command '%s'\033[0m\n", arg.c_str());
 				return false;
 			}
+			if (cmd->IgnoreAfter)
+				break;
 			continue;
 		}
 
@@ -285,9 +300,16 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 			cmd->Params.push_back(arg);
 		else
 			Params.push_back(arg);
+		ParseEnd = i + 1;
 	}
 
-	if (cmd && cmd->CmdEnforceParams) {
+	// No command chosen
+	if (cmd == nullptr && Commands.size() != 0) {
+		ShowHelpInternal(0, "");
+		return false;
+	}
+
+	if (cmd && cmd->CmdEnforceParams && !cmd->IgnoreAfter) {
 		auto nparams = cmd->Params.size();
 		if (nparams != cmd->CmdParamsCount()) {
 			printf("\033[1;31m%s expects %d parameters: %s, but there are %d parameters\033[0m\n", cmd->CmdName.c_str(), (int) cmd->CmdParamsCount(), cmd->CmdParams.c_str(), (int) nparams);
@@ -296,6 +318,17 @@ inline bool Args::Parse(int argc, const char** argv, int startAt) {
 	}
 
 	return true;
+}
+
+inline bool Args::Parse(const std::vector<std::string>& args, int startAt) {
+	std::vector<const char*> argv;
+	for (int i = startAt; i < (int) args.size(); i++)
+		argv.push_back(args[i].c_str());
+
+	if (argv.size() == 0)
+		return Parse(0, nullptr, 0);
+	else
+		return Parse((int) argv.size(), &argv[0], 0);
 }
 
 inline int Args::ExecCommand() {
